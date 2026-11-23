@@ -24,6 +24,8 @@
   form { display:flex; gap:8px; flex-wrap:wrap; }
   input, select { font:inherit; padding:10px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); }
   input { flex:1; min-width:140px; }
+  input[type=checkbox] { flex:none; min-width:0; width:22px; height:22px; padding:0; margin:0; accent-color:var(--main); cursor:pointer; }
+  #kList label { cursor:pointer; }
   .add { padding:10px 16px; background:var(--ink); color:var(--bg); }
   ul { list-style:none; padding:0; margin:12px 0 0; }
   li { display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); }
@@ -42,7 +44,7 @@
     <div id="result">?</div>
     <div id="resultCat"></div>
     <div class="chips" id="filters" style="margin-top:12px"></div>
-    <label class="opt"><input type="checkbox" id="noRepeat" style="flex:0;min-width:0"> 최근 3번 간 곳은 제외</label>
+    <label class="opt"><input type="checkbox" id="noRepeat"> 최근 3번 간 곳은 제외</label>
     <button id="spin">🎲 랜덤 뽑기</button>
   </div>
 
@@ -68,6 +70,10 @@
       <button type="button" class="add" id="kHere">현재 위치</button>
     </form>
     <div id="kMsg" style="color:var(--sub);font-size:14px;margin-top:8px"></div>
+    <div id="kTools" style="display:none;gap:8px;margin-top:10px">
+      <button type="button" class="chip" id="kAll">전체 선택</button>
+      <button type="button" class="chip" id="kNone">전체 해제</button>
+    </div>
     <ul id="kList"></ul>
     <button type="button" class="add" id="kAdd" style="display:none;width:100%;margin-top:10px">선택한 식당 추가</button>
   </div>
@@ -200,14 +206,17 @@ function searchNear(lat, lng) {
 
 function showFound() {
   const have = new Set(data.items.map(i => i.name));
-  if (!found.length) { kMsg("주변에서 식당을 찾지 못했어요."); $("kList").innerHTML=""; $("kAdd").style.display="none"; return; }
+  if (!found.length) { kMsg("주변에서 식당을 찾지 못했어요."); $("kList").innerHTML=""; $("kAdd").style.display="none"; $("kTools").style.display="none"; return; }
   kMsg(`${found.length}곳을 찾았어요. 추가할 식당을 고르세요.`);
   $("kList").innerHTML = found.map((p,i) => `<li><label style="display:flex;gap:8px;align-items:center;flex:1">
-    <input type="checkbox" data-k="${i}" ${have.has(p.place_name)?"disabled":"checked"} style="flex:0;min-width:0">
+    <input type="checkbox" data-k="${i}" ${have.has(p.place_name)?"disabled":"checked"}>
     <span>${esc(p.place_name)}<small>${mapCat(p.category_name)} · ${p.distance}m${have.has(p.place_name)?" · 이미 있음":""}</small></span></label>
     <a href="${esc(p.place_url)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--main)">지도</a></li>`).join("");
-  $("kAdd").style.display = "block";
+  $("kAdd").style.display = "block"; $("kTools").style.display = "flex";
 }
+const setAll = v => document.querySelectorAll("#kList input:not(:disabled)").forEach(cb => cb.checked = v);
+$("kAll").onclick = () => setAll(true);
+$("kNone").onclick = () => setAll(false);
 
 $("kakaoForm").onsubmit = async e => {
   e.preventDefault();
@@ -241,6 +250,7 @@ $("kAdd").onclick = () => {
     data.items.push({ name: p.place_name, cat: mapCat(p.category_name), url: p.place_url, dist: Number(p.distance) });
     n++;
   });
+  if (!n) return kMsg("선택한 식당이 없어요. 체크박스를 눌러 골라 주세요.");
   save(); render(); showFound();
   kMsg(`${n}곳을 추가했어요!`);
 };
