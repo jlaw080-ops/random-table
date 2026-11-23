@@ -140,6 +140,7 @@ let kSet = {};
 try { kSet = JSON.parse(localStorage.getItem(KKEY)) || {}; } catch(e) {}
 $("kKey").value = kSet.key || ""; $("kPlace").value = kSet.place || "";
 let found = [];
+const SVC_ERR = "❌ 2단계 실패: 지도는 불러왔지만 검색이 거부됐어요. 카카오 개발자 사이트 > 내 애플리케이션 > (제품 설정) 카카오맵 에서 '사용 설정'을 ON 해 주세요.";
 const kMsg = t => $("kMsg").textContent = t;
 
 // 카카오 분류("음식점 > 한식 > 찌개") → 앱 분류
@@ -157,8 +158,12 @@ function loadSdk(key) {
   sdkPromise = new Promise((ok, fail) => {
     const s = document.createElement("script");
     s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
-    s.onload = () => kakao.maps.load(ok);
-    s.onerror = () => { sdkPromise = null; s.remove(); fail(); };
+    const t = setTimeout(() => { sdkPromise = null; s.remove(); fail(); }, 8000);
+    s.onload = () => {
+      if (!window.kakao?.maps?.load) { clearTimeout(t); sdkPromise = null; s.remove(); return fail(); }
+      kakao.maps.load(() => { clearTimeout(t); ok(); });
+    };
+    s.onerror = () => { clearTimeout(t); sdkPromise = null; s.remove(); fail(); };
     document.head.appendChild(s);
   });
   return sdkPromise;
@@ -167,10 +172,14 @@ function loadSdk(key) {
 async function ready() {
   const key = $("kKey").value.trim();
   if (!key) { kMsg("카카오 JavaScript 키를 입력해 주세요."); return false; }
+  if (window.kakao?.maps?.services && kSet.key && kSet.key !== key) {
+    kSet.key = key; try { localStorage.setItem(KKEY, JSON.stringify(kSet)); } catch(e) {}
+    location.reload(); return false; // 키를 바꾸면 새로 불러오기
+  }
   kSet.key = key; kSet.place = $("kPlace").value.trim();
   try { localStorage.setItem(KKEY, JSON.stringify(kSet)); } catch(e) {}
   try { await loadSdk(key); return true; }
-  catch { kMsg("카카오 지도를 불러오지 못했어요. 키와 '플랫폼 > Web 사이트 도메인' 등록을 확인해 주세요."); return false; }
+  catch { kMsg("❌ 1단계 실패: 카카오 지도를 불러오지 못했어요. ① JavaScript 키가 맞는지(REST API 키 X) ② 플랫폼 > Web 사이트 도메인에 " + location.origin + " 이 등록됐는지 확인해 주세요."); return false; }
 }
 
 function searchNear(lat, lng) {
@@ -183,6 +192,7 @@ function searchNear(lat, lng) {
       found.push(...res);
       if (pg.hasNextPage && pg.current < 3) return pg.nextPage(); // 최대 45곳
     }
+    else if (status === kakao.maps.services.Status.ERROR && !found.length) return kMsg(SVC_ERR);
     found.sort((a,b) => a.distance - b.distance);
     showFound();
   }, { location: loc, radius: Number($("kRadius").value), sort: kakao.maps.services.SortBy.DISTANCE });
@@ -209,6 +219,7 @@ $("kakaoForm").onsubmit = async e => {
     if (st === kakao.maps.services.Status.OK) return searchNear(r[0].y, r[0].x);
     new kakao.maps.services.Places().keywordSearch(q, (r2, st2) => {
       if (st2 === kakao.maps.services.Status.OK) searchNear(r2[0].y, r2[0].x);
+      else if (st2 === kakao.maps.services.Status.ERROR) kMsg(SVC_ERR);
       else kMsg("위치를 찾지 못했어요. 다른 이름으로 검색해 보세요.");
     });
   });
