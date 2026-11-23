@@ -1,11 +1,131 @@
 {
-  "kakaoKey": "",
+  "kakaoKey": "ea7725940d8767a04b154ee511913e16",
   "restaurants": [
-    { "name": "김치찌개집", "cat": "한식" },
-    { "name": "중화반점", "cat": "중식" },
-    { "name": "돈카츠", "cat": "일식" },
-    { "name": "파스타집", "cat": "양식" },
-    { "name": "김밥천국", "cat": "분식" },
-    { "name": "국밥집", "cat": "한식" }
+    {
+      "name": "고반식당 안양아이에스비즈타워점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/5201006",
+      "dist": 11
+    },
+    {
+      "name": "스테이크의정석 덕천점",
+      "cat": "양식",
+      "url": "http://place.map.kakao.com/919171808",
+      "dist": 37
+    },
+    {
+      "name": "일품양평해장국 안양비즈타워점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/676166166",
+      "dist": 54
+    },
+    {
+      "name": "최고당돈가스 안양아이에스비즈타워점",
+      "cat": "일식",
+      "url": "http://place.map.kakao.com/1877718135",
+      "dist": 57
+    },
+    {
+      "name": "강순자옛맛김치찌개 안양아이에스비즈타워점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/1853289583",
+      "dist": 62
+    },
+    {
+      "name": "봄봄한식뷔페 안양점",
+      "cat": "기타",
+      "url": "http://place.map.kakao.com/77237915",
+      "dist": 67
+    },
+    {
+      "name": "빅토리가든",
+      "cat": "분식",
+      "url": "http://place.map.kakao.com/1514701044",
+      "dist": 67
+    },
+    {
+      "name": "오수제비",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/1240379802",
+      "dist": 67
+    },
+    {
+      "name": "오봉집 아이에스비즈타워점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/1428357519",
+      "dist": 67
+    },
+    {
+      "name": "평촌갈비곰탕",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/523190221",
+      "dist": 67
+    },
+    {
+      "name": "미식가",
+      "cat": "기타",
+      "url": "http://place.map.kakao.com/113243007",
+      "dist": 67
+    },
+    {
+      "name": "정직유부 안양IS비즈타워점",
+      "cat": "일식",
+      "url": "http://place.map.kakao.com/1661624426",
+      "dist": 68
+    },
+    {
+      "name": "육수당 안양비즈타워점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/1480080218",
+      "dist": 68
+    },
+    {
+      "name": "식구반점",
+      "cat": "중식",
+      "url": "http://place.map.kakao.com/1765536795",
+      "dist": 74
+    },
+    {
+      "name": "33떡볶이 안양IS비즈타워점",
+      "cat": "분식",
+      "url": "http://place.map.kakao.com/1933740772",
+      "dist": 76
+    },
+    {
+      "name": "프랭크버거 안양아이에스비즈타워점",
+      "cat": "양식",
+      "url": "http://place.map.kakao.com/654095987",
+      "dist": 76
+    },
+    {
+      "name": "꼬숩다누룽지닭죽 안양점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/989856225",
+      "dist": 78
+    },
+    {
+      "name": "미인홍콩",
+      "cat": "중식",
+      "url": "http://place.map.kakao.com/1709203994",
+      "dist": 97
+    },
+    {
+      "name": "아지쿠라",
+      "cat": "일식",
+      "url": "http://place.map.kakao.com/1638054397",
+      "dist": 145
+    },
+    {
+      "name": "태기산더덕순대 비즈타워점",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/700987614",
+      "dist": 174
+    },
+    {
+      "name": "산골정육식당",
+      "cat": "한식",
+      "url": "http://place.map.kakao.com/636423272",
+      "dist": 252
+    }
   ]
 }
