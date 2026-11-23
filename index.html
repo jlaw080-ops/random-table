@@ -49,7 +49,7 @@
     <button type="button" id="goBtn" class="add" style="display:none;width:100%;margin-top:8px">✅ 여기로 갈게요 (기록하기)</button>
     <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:14px">🕘 최근 간 곳</b>
+        <b style="font-size:14px">🕘 최근 간 곳 <small id="histMode" style="font-weight:400;color:var(--sub)"></small></b>
         <button type="button" class="del" id="clearHist" style="font-size:13px">기록 지우기</button>
       </div>
       <ul id="hist" style="margin-top:4px"></ul>
@@ -187,21 +187,47 @@ $("spin").onclick = () => {
   };
   tick();
 };
-$("goBtn").onclick = () => {
+// ----- 방문 기록: 팀 공유(서버) 또는 이 기기 저장 -----
+let teamMode = false;
+const histLabel = t => $("histMode").textContent = t;
+async function teamApi(method, body) {
+  const r = await fetch("/api/history", { method, headers: { "Content-Type": "application/json" },
+    ...(body && { body: JSON.stringify(body) }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `오류 ${r.status}`);
+  return j;
+}
+async function histChange(method, body, localFn) {
+  if (!teamMode) { localFn(); save(); renderHist(); return true; }
+  histLabel("저장 중...");
+  try { data.history = await teamApi(method, body); save(); renderHist(); histLabel("👥 팀 공유"); return true; }
+  catch (e) { histLabel("⚠️ 저장 실패: " + e.message); return false; }
+}
+$("goBtn").onclick = async () => {
   if (!lastPick) return;
-  data.history.push({ name: lastPick.name, at: Date.now() }); data.history = data.history.slice(-10);
-  save(); renderHist(); $("goBtn").style.display = "none";
-  $("resultCat").insertAdjacentHTML("beforeend", " · 기록했어요 ✍️");
+  const pick = lastPick; $("goBtn").disabled = true;
+  const ok = await histChange("POST", { name: pick.name },
+    () => { data.history.push({ name: pick.name, at: Date.now() }); data.history = data.history.slice(-10); });
+  $("goBtn").disabled = false;
+  if (ok) { $("goBtn").style.display = "none"; lastPick = null;
+    $("resultCat").insertAdjacentHTML("beforeend", " · 기록했어요 ✍️"); }
 };
 $("hist").onclick = e => {
   const i = e.target.dataset.h; if (i === undefined) return;
-  data.history.splice(i, 1); save(); renderHist();
+  const h = data.history[i];
+  histChange("DELETE", { name: h.name, at: h.at }, () => data.history.splice(i, 1));
 };
 $("clearHist").onclick = () => {
-  if (!data.history.length || !confirm("방문 기록을 모두 지울까요?")) return;
-  data.history = []; save(); renderHist();
+  if (!data.history.length || !confirm(teamMode ? "팀 전체의 방문 기록을 모두 지울까요?" : "방문 기록을 모두 지울까요?")) return;
+  histChange("DELETE", { all: true }, () => { data.history = []; });
 };
-render(); renderHist();
+function loadTeamHist() {
+  return teamApi("GET").then(list => {
+    teamMode = true; data.history = list; save(); renderHist(); histLabel("👥 팀 공유");
+  }).catch(() => { if (!teamMode) histLabel("📱 이 기기에만 저장"); });
+}
+render(); renderHist(); loadTeamHist();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && teamMode) loadTeamHist(); });
 
 // ===== 카카오맵 주변 식당 불러오기 =====
 const KKEY = "lunch-picker-kakao";
