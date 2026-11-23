@@ -44,8 +44,16 @@
     <div id="result">?</div>
     <div id="resultCat"></div>
     <div class="chips" id="filters" style="margin-top:12px"></div>
-    <label class="opt"><input type="checkbox" id="noRepeat"> 최근 3번 간 곳은 제외</label>
+    <label class="opt"><input type="checkbox" id="noRepeat"> 최근 간 곳 3곳은 제외</label>
     <button id="spin">🎲 랜덤 뽑기</button>
+    <button type="button" id="goBtn" class="add" style="display:none;width:100%;margin-top:8px">✅ 여기로 갈게요 (기록하기)</button>
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <b style="font-size:14px">🕘 최근 간 곳</b>
+        <button type="button" class="del" id="clearHist" style="font-size:13px">기록 지우기</button>
+      </div>
+      <ul id="hist" style="margin-top:4px"></ul>
+    </div>
   </div>
 
   <div class="card" id="syncCard">
@@ -104,6 +112,19 @@ let data = { items: [], history: [], filter: [], dirty: false };
 try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) data = s; } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e) {} };
 const $ = id => document.getElementById(id);
+data.history = (data.history || []).map(h => typeof h === "string" ? { name: h, at: null } : h);
+const recentNames = () => data.history.slice(-3).map(h => h.name);
+const fmtDate = t => { if (!t) return ""; const d = new Date(t);
+  return `${d.getMonth()+1}/${d.getDate()}(${"일월화수목금토"[d.getDay()]})`; };
+function renderHist() {
+  const recent3 = data.history.length - 3;
+  $("hist").innerHTML = data.history.slice().reverse().map((h, ri) => {
+    const i = data.history.length - 1 - ri;
+    return `<li style="${i >= recent3 ? "" : "opacity:.5"}"><span>${esc(h.name)}<small>${fmtDate(h.at)}${i >= recent3 ? " · 제외 대상" : ""}</small></span>
+      <button class="del" data-h="${i}" title="이 기록 삭제">✕</button></li>`; }).join("")
+    || `<li style="color:var(--sub);font-size:14px">아직 기록이 없어요. 뽑은 뒤 '여기로 갈게요'를 누르면 기록돼요.</li>`;
+}
+let lastPick = null;
 let shared = null; // restaurants.json 내용
 const markDirty = () => { data.dirty = true; save(); syncUI(); };
 function syncUI() {
@@ -147,12 +168,12 @@ $("addForm").onsubmit = e => {
 $("spin").onclick = () => {
   let pool = data.items.filter(it => !data.filter.length || data.filter.includes(it.cat));
   if ($("noRepeat").checked) {
-    const recent = data.history.slice(-3);
+    const recent = recentNames();
     const p2 = pool.filter(it => !recent.includes(it.name));
     if (p2.length) pool = p2;
   }
   if (!pool.length) { $("result").textContent = "후보가 없어요"; $("resultCat").textContent=""; return; }
-  $("spin").disabled = true; $("resultCat").textContent = "";
+  $("spin").disabled = true; $("resultCat").textContent = ""; $("goBtn").style.display = "none";
   let n = 0, total = 18;
   const tick = () => {
     const pick = pool[Math.floor(Math.random()*pool.length)];
@@ -161,13 +182,26 @@ $("spin").onclick = () => {
     else {
       $("resultCat").innerHTML = `${pick.cat}${pick.dist?` · ${pick.dist}m`:""} · 오늘은 여기로! 🎉` +
         (pick.url ? ` <a href="${esc(pick.url)}" target="_blank" rel="noopener" style="color:var(--main)">지도 보기</a>` : "");
-      data.history.push(pick.name); data.history = data.history.slice(-10);
-      save(); $("spin").disabled = false;
+      lastPick = pick; $("goBtn").style.display = "block"; $("spin").disabled = false;
     }
   };
   tick();
 };
-render();
+$("goBtn").onclick = () => {
+  if (!lastPick) return;
+  data.history.push({ name: lastPick.name, at: Date.now() }); data.history = data.history.slice(-10);
+  save(); renderHist(); $("goBtn").style.display = "none";
+  $("resultCat").insertAdjacentHTML("beforeend", " · 기록했어요 ✍️");
+};
+$("hist").onclick = e => {
+  const i = e.target.dataset.h; if (i === undefined) return;
+  data.history.splice(i, 1); save(); renderHist();
+};
+$("clearHist").onclick = () => {
+  if (!data.history.length || !confirm("방문 기록을 모두 지울까요?")) return;
+  data.history = []; save(); renderHist();
+};
+render(); renderHist();
 
 // ===== 카카오맵 주변 식당 불러오기 =====
 const KKEY = "lunch-picker-kakao";
