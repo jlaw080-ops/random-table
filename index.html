@@ -48,6 +48,24 @@
     <button id="spin">🎲 랜덤 뽑기</button>
   </div>
 
+  <div class="card" id="syncCard">
+    <div id="syncMsg" style="font-size:14px;color:var(--sub)">공유 목록 불러오는 중...</div>
+    <div id="syncBtns" style="display:none;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button type="button" class="add" id="exportBtn">📤 GitHub에 저장하기</button>
+      <button type="button" class="chip" id="resetBtn">GitHub 목록으로 되돌리기</button>
+    </div>
+    <div id="exportBox" style="display:none;margin-top:12px;font-size:14px">
+      <ol style="padding-left:20px;margin:0 0 8px;line-height:1.7">
+        <li>아래 <b>복사</b> 버튼을 누르세요.</li>
+        <li><a id="ghEdit" target="_blank" rel="noopener" style="color:var(--main)">GitHub 편집 화면 열기</a> → 기존 내용을 모두 지우고(Ctrl+A) 붙여넣기(Ctrl+V)</li>
+        <li>오른쪽 위 초록색 <b>Commit changes</b> 클릭</li>
+        <li>1~2분 뒤 모두에게 새 목록이 보여요.</li>
+      </ol>
+      <textarea id="exportText" readonly style="width:100%;height:140px;font:12px monospace;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);padding:8px"></textarea>
+      <button type="button" class="add" id="copyBtn" style="width:100%;margin-top:6px">복사</button>
+    </div>
+  </div>
+
   <div class="card">
     <h2>식당 추가</h2>
     <form id="addForm">
@@ -81,13 +99,24 @@
 <script>
 const CATS = ["한식","중식","일식","양식","분식","기타"];
 const KEY = "lunch-picker-v1";
-let data = { items: [
-  {name:"김치찌개집",cat:"한식"},{name:"중화반점",cat:"중식"},{name:"돈카츠",cat:"일식"},
-  {name:"파스타집",cat:"양식"},{name:"김밥천국",cat:"분식"},{name:"국밥집",cat:"한식"}
-], history: [], filter: [] };
+const GH_EDIT = "https://github.com/jlaw080-ops/random-table/edit/main/restaurants.json";
+let data = { items: [], history: [], filter: [], dirty: false };
 try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) data = s; } catch(e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e) {} };
 const $ = id => document.getElementById(id);
+let shared = null; // restaurants.json 내용
+const markDirty = () => { data.dirty = true; save(); syncUI(); };
+function syncUI() {
+  if (!shared) return;
+  $("syncBtns").style.display = data.dirty ? "flex" : "none";
+  $("syncMsg").innerHTML = data.dirty
+    ? "✏️ <b>이 기기에서 목록을 바꿨어요.</b> 모두와 공유하려면 GitHub에 저장하세요."
+    : `✅ 공유 목록(GitHub) ${data.items.length}곳을 쓰고 있어요.`;
+}
+function exportJson() {
+  return JSON.stringify({ kakaoKey: shared?.kakaoKey || kSet.key || "",
+    restaurants: data.items.map(({name,cat,url,dist}) => ({name,cat,...(url&&{url}),...(dist&&{dist})})) }, null, 2);
+}
 
 $("cat").innerHTML = CATS.map(c => `<option>${c}</option>`).join("");
 
@@ -107,12 +136,12 @@ $("filters").onclick = e => {
 };
 $("list").onclick = e => {
   const i = e.target.dataset.i; if (i === undefined) return;
-  data.items.splice(i,1); save(); render();
+  data.items.splice(i,1); render(); markDirty();
 };
 $("addForm").onsubmit = e => {
   e.preventDefault();
   const name = $("name").value.trim(); if (!name) return;
-  data.items.push({name, cat:$("cat").value}); $("name").value=""; save(); render();
+  data.items.push({name, cat:$("cat").value}); $("name").value=""; render(); markDirty();
 };
 
 $("spin").onclick = () => {
@@ -251,9 +280,39 @@ $("kAdd").onclick = () => {
     n++;
   });
   if (!n) return kMsg("선택한 식당이 없어요. 체크박스를 눌러 골라 주세요.");
-  save(); render(); showFound();
-  kMsg(`${n}곳을 추가했어요!`);
+  render(); showFound(); markDirty();
+  kMsg(`${n}곳을 추가했어요! 위의 'GitHub에 저장하기'로 공유하세요.`);
 };
+
+// ===== GitHub 공유 목록 (restaurants.json) =====
+$("ghEdit").href = GH_EDIT;
+$("exportBtn").onclick = () => {
+  $("exportText").value = exportJson();
+  $("exportBox").style.display = $("exportBox").style.display === "none" ? "block" : "none";
+};
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText($("exportText").value); }
+  catch { $("exportText").select(); document.execCommand("copy"); }
+  $("copyBtn").textContent = "복사됨! 이제 GitHub 편집 화면에 붙여넣으세요";
+};
+$("resetBtn").onclick = () => {
+  if (!confirm("이 기기에서 바꾼 내용을 버리고 GitHub 목록으로 되돌릴까요?")) return;
+  data.items = shared.restaurants.slice(); data.dirty = false; save(); render(); syncUI();
+  $("exportBox").style.display = "none";
+};
+fetch("restaurants.json", { cache: "no-store" })
+  .then(r => { if (!r.ok) throw 0; return r.json(); })
+  .then(j => {
+    shared = { kakaoKey: j.kakaoKey || "", restaurants: Array.isArray(j.restaurants) ? j.restaurants : [] };
+    const same = JSON.stringify(shared.restaurants.map(r=>r.name)) === JSON.stringify(data.items.map(r=>r.name));
+    if (data.dirty && same) data.dirty = false; // GitHub에 저장 완료된 경우
+    if (!data.dirty) { data.items = shared.restaurants.slice(); save(); render(); }
+    if (shared.kakaoKey) { // 공유 키가 있으면 키 입력 불필요
+      $("kKey").value = shared.kakaoKey; $("kKey").style.display = "none";
+    }
+    syncUI();
+  })
+  .catch(() => { $("syncMsg").textContent = "⚠️ 공유 목록을 불러오지 못해 이 기기에 저장된 목록을 쓰고 있어요."; });
 </script>
 </body>
 </html>
