@@ -4,48 +4,113 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>오늘 뭐 먹지?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#fff8f0; --card:#fff; --ink:#2b2b2b; --sub:#777; --main:#ff6b35; --line:#eee; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#1c1b1a; --card:#2a2826; --ink:#f2f2f2; --sub:#aaa; --line:#3a3734; } }
+  :root { --bg:#ffe14d; --dot:#ffcf1f; --card:#fff; --ink:#1a1a1a; --sub:#5b5b5b; --main:#ff3d3d; --blue:#2f7dff; --mint:#22d3a6; --line:#1a1a1a; --soft:#f3f0e6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#2b2350; --dot:#352c63; --card:#fffaf0; } }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif; }
-  main { max-width:520px; margin:0 auto; padding:24px 16px 60px; }
-  h1 { text-align:center; margin:8px 0 4px; }
-  .sub { text-align:center; color:var(--sub); margin:0 0 20px; font-size:14px; }
-  .card { background:var(--card); border-radius:16px; padding:18px; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
-  #result { text-align:center; font-size:32px; font-weight:800; min-height:56px; display:flex; align-items:center; justify-content:center; }
+  body { margin:0; color:var(--ink); font-family:"Jua",-apple-system,"Malgun Gothic",sans-serif; overflow-x:hidden;
+    background:var(--bg); background-image:radial-gradient(var(--dot) 2.5px, transparent 2.6px); background-size:18px 18px; }
+  main { max-width:520px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-family:"Black Han Sans",sans-serif; font-weight:400; text-align:center; margin:10px 0 2px; font-size:clamp(28px,8.5vw,44px); white-space:nowrap; line-height:1.1;
+    color:#fff; -webkit-text-stroke:2px var(--ink); paint-order:stroke fill; text-shadow:4px 4px 0 var(--ink); transform:rotate(-3deg);
+    animation:wobble 3s ease-in-out infinite; }
+  h1 .em { display:inline-block; animation:bounce 1s ease-in-out infinite; -webkit-text-stroke:0; text-shadow:none; }
+  .sub { text-align:center; margin:12px auto 22px; font-size:15px; background:#fff; border:3px solid var(--ink); border-radius:20px;
+    padding:6px 14px; width:max-content; max-width:100%; position:relative; box-shadow:3px 3px 0 var(--ink); }
+  .sub::after { content:""; position:absolute; left:50%; top:-12px; border:8px solid transparent; border-bottom-color:var(--ink); transform:translateX(-50%); }
+  .card { background:var(--card); border:3px solid var(--ink); border-radius:18px; padding:18px; margin-bottom:20px; box-shadow:6px 6px 0 var(--ink); }
+  .card:nth-of-type(odd) { transform:rotate(-.6deg); } .card:nth-of-type(even) { transform:rotate(.5deg); }
+  #result { font-family:"Black Han Sans",sans-serif; text-align:center; font-size:34px; min-height:70px; display:flex; align-items:center; justify-content:center;
+    word-break:keep-all; line-height:1.15; position:relative; }
+  #result.pop { animation:popIn .6s cubic-bezier(.2,1.8,.4,1) both; }
+  #result.idle { font-size:56px; color:var(--main); -webkit-text-stroke:2px var(--ink); animation:bounce 1.2s ease-in-out infinite; }
   #resultCat { text-align:center; color:var(--sub); min-height:20px; }
-  button { font:inherit; cursor:pointer; border:none; border-radius:12px; }
-  #spin { width:100%; padding:16px; font-size:20px; font-weight:700; background:var(--main); color:#fff; margin-top:12px; }
-  #spin:disabled { opacity:.6; }
+  #resultCat a { color:var(--blue); }
+  .stamp { display:inline-block; margin-top:6px; font-family:"Black Han Sans",sans-serif; color:var(--main); border:3px solid var(--main);
+    border-radius:8px; padding:2px 10px; transform:rotate(-10deg); animation:stamp .45s cubic-bezier(.3,1.6,.5,1) .15s both; }
+  button { font:inherit; cursor:pointer; border:3px solid var(--ink); border-radius:14px; color:var(--ink); transition:transform .08s, box-shadow .08s; }
+  button:active:not(:disabled) { transform:translate(3px,3px); box-shadow:0 0 0 var(--ink) !important; }
+  #spin { width:100%; padding:16px; font-family:"Black Han Sans",sans-serif; font-size:26px; background:var(--main); color:#fff; margin-top:14px;
+    box-shadow:5px 5px 0 var(--ink); text-shadow:2px 2px 0 var(--ink); animation:pulse 1.6s ease-in-out infinite; }
+  #spin:disabled { opacity:.6; animation:none; }
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
-  .chip { padding:6px 12px; background:var(--line); color:var(--ink); font-size:14px; }
-  .chip.on { background:var(--main); color:#fff; }
+  .chip { padding:5px 12px; background:#fff; font-size:15px; border-width:2px; box-shadow:2px 2px 0 var(--ink); }
+  .chip.on { background:var(--blue); color:#fff; transform:rotate(-3deg) scale(1.05); }
   form { display:flex; gap:8px; flex-wrap:wrap; }
-  input, select { font:inherit; padding:10px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); }
+  input, select { font:inherit; padding:10px; border:2.5px solid var(--ink); border-radius:12px; background:var(--soft); color:var(--ink); }
+  input:focus, select:focus { outline:none; background:#fff; box-shadow:3px 3px 0 var(--blue); }
   input { flex:1; min-width:140px; }
   input[type=checkbox] { flex:none; min-width:0; width:22px; height:22px; padding:0; margin:0; accent-color:var(--main); cursor:pointer; }
   #kList label { cursor:pointer; }
-  .add { padding:10px 16px; background:var(--ink); color:var(--bg); }
+  .add { padding:10px 16px; background:var(--mint); box-shadow:3px 3px 0 var(--ink); }
+  #goBtn { font-size:18px; background:var(--mint); box-shadow:4px 4px 0 var(--ink); animation:popIn .5s cubic-bezier(.2,1.8,.4,1) both; }
   ul { list-style:none; padding:0; margin:12px 0 0; }
-  li { display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); }
+  li { display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:2px dashed #d6d0bd; }
   li small { color:var(--sub); margin-left:6px; }
-  .del { background:none; color:var(--sub); font-size:18px; }
-  h2 { font-size:16px; margin:0 0 12px; }
-  label.opt { display:flex; gap:6px; align-items:center; font-size:14px; color:var(--sub); margin-top:12px; }
+  .del { background:none; border:none; color:var(--sub); font-size:18px; box-shadow:none; }
+  h2 { font-family:"Black Han Sans",sans-serif; font-weight:400; font-size:20px; margin:0 0 12px; }
+  label.opt { display:flex; gap:6px; align-items:center; font-size:15px; color:var(--ink); margin-top:12px; }
+
+  /* ===== 뽑기 연출 무대 ===== */
+  #stage { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; flex-direction:column; overflow:hidden;
+    background:repeating-conic-gradient(from 0deg, #ffe14d 0 10deg, #ffb703 10deg 20deg); }
+  #stage.on { display:flex; }
+  #stage.spinning { animation:bgSpin 2s linear infinite; }
+  #stage .rays { position:absolute; inset:-50%; background:repeating-conic-gradient(rgba(255,255,255,.35) 0 6deg, transparent 6deg 18deg); animation:spinR 6s linear infinite; }
+  #drum { position:relative; font-family:"Black Han Sans",sans-serif; font-size:34px; color:#fff; -webkit-text-stroke:2px var(--ink); paint-order:stroke fill;
+    text-shadow:3px 3px 0 var(--ink); margin-bottom:18px; animation:shake .15s linear infinite; }
+  #reelBox { position:relative; width:min(88vw,420px); height:110px; background:#fff; border:5px solid var(--ink); border-radius:20px; overflow:hidden;
+    box-shadow:8px 8px 0 var(--ink); }
+  #reelBox::before, #reelBox::after { content:""; position:absolute; left:0; right:0; height:30px; z-index:2; }
+  #reelBox::before { top:0; background:linear-gradient(#fff,transparent); } #reelBox::after { bottom:0; background:linear-gradient(transparent,#fff); }
+  #reel { position:absolute; left:0; right:0; top:0; }
+  #reel div { height:110px; display:flex; align-items:center; justify-content:center; text-align:center; padding:0 12px;
+    font-family:"Black Han Sans",sans-serif; font-size:30px; word-break:keep-all; line-height:1.1; }
+  #reel.blur div { filter:blur(1.5px); }
+  #mascot { position:relative; font-size:64px; margin-top:18px; animation:bounce .35s ease-in-out infinite; }
+  #bang { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; z-index:5; }
+  #bang.on { display:flex; }
+  #bang .burst { position:absolute; width:150vmax; height:150vmax; background:repeating-conic-gradient(#ff3d3d 0 8deg, #ffe14d 8deg 16deg);
+    clip-path:polygon(50% 0,58% 35%,95% 20%,65% 48%,100% 60%,62% 62%,75% 100%,50% 70%,25% 100%,38% 62%,0 60%,35% 48%,5% 20%,42% 35%);
+    animation:burst .5s cubic-bezier(.2,1.6,.4,1) both; }
+  #bang .kw { position:relative; font-family:"Black Han Sans",sans-serif; font-size:72px; color:#fff; -webkit-text-stroke:3px var(--ink);
+    paint-order:stroke fill; text-shadow:6px 6px 0 var(--ink); animation:popIn .45s cubic-bezier(.2,2,.4,1) both; transform:rotate(-8deg); }
+  #bang .name { position:relative; margin-top:14px; max-width:90vw; text-align:center; word-break:keep-all; background:#fff; border:5px solid var(--ink);
+    border-radius:20px; padding:12px 20px; font-family:"Black Han Sans",sans-serif; font-size:34px; box-shadow:8px 8px 0 var(--ink);
+    animation:popIn .6s cubic-bezier(.2,1.8,.4,1) .15s both; }
+  #bang .tap { position:relative; margin-top:22px; font-size:16px; background:var(--ink); color:#fff; padding:6px 14px; border-radius:20px; animation:blink 1s step-end infinite .8s both; }
+  .flash { animation:flash .35s ease-out; }
+  .quake { animation:quake .5s cubic-bezier(.36,.07,.19,.97) both; }
+  .bit { position:fixed; z-index:60; pointer-events:none; font-size:32px; left:50%; top:50%; will-change:transform,opacity; }
+
+  @keyframes bounce { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-10px) } }
+  @keyframes wobble { 0%,100% { transform:rotate(-3deg) } 50% { transform:rotate(2deg) scale(1.03) } }
+  @keyframes pulse { 0%,100% { transform:scale(1) } 50% { transform:scale(1.03) rotate(-1deg) } }
+  @keyframes popIn { 0% { transform:scale(0) rotate(-15deg); opacity:0 } 70% { transform:scale(1.15) rotate(3deg); opacity:1 } 100% { transform:scale(1) rotate(0) } }
+  @keyframes stamp { 0% { transform:scale(3) rotate(-25deg); opacity:0 } 100% { transform:scale(1) rotate(-10deg); opacity:1 } }
+  @keyframes shake { 0%,100% { transform:translate(0,0) rotate(0) } 25% { transform:translate(-3px,2px) rotate(-2deg) } 75% { transform:translate(3px,-2px) rotate(2deg) } }
+  @keyframes quake { 10%,90% { transform:translate(-4px,2px) } 20%,80% { transform:translate(8px,-4px) } 30%,50%,70% { transform:translate(-14px,6px) rotate(-1deg) } 40%,60% { transform:translate(14px,-6px) rotate(1deg) } }
+  @keyframes spinR { to { transform:rotate(360deg) } }
+  @keyframes bgSpin { to { filter:hue-rotate(360deg) } }
+  @keyframes burst { 0% { transform:scale(0) rotate(-30deg) } 100% { transform:scale(1) rotate(0) } }
+  @keyframes flash { 0% { box-shadow:inset 0 0 0 100vmax #fff } 100% { box-shadow:inset 0 0 0 100vmax transparent } }
+  @keyframes blink { 50% { opacity:0 } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>🍽️ 오늘 뭐 먹지?</h1>
-  <p class="sub">버튼 한 번으로 점심 고민 끝</p>
+  <h1><span class="em">🍜</span> 오늘 뭐 먹지?! <span class="em" style="animation-delay:.3s">🍔</span></h1>
+  <p class="sub">고민은 배만 고플 뿐! 버튼이 대신 골라줌 💥</p>
 
   <div class="card">
-    <div id="result">?</div>
+    <div id="result" class="idle">?</div>
     <div id="resultCat"></div>
     <div class="chips" id="filters" style="margin-top:12px"></div>
     <label class="opt"><input type="checkbox" id="noRepeat"> 최근 간 곳 3곳은 제외</label>
-    <button id="spin">🎲 랜덤 뽑기</button>
+    <button id="spin">🎲 운명의 뽑기!</button>
     <button type="button" id="goBtn" class="add" style="display:none;width:100%;margin-top:8px">✅ 여기로 갈게요 (기록하기)</button>
     <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -104,6 +169,14 @@
     <button type="button" class="add" id="kAdd" style="display:none;width:100%;margin-top:10px">선택한 식당 추가</button>
   </div>
 </main>
+
+<div id="stage" aria-live="polite">
+  <div class="rays"></div>
+  <div id="drum">두구두구두구...</div>
+  <div id="reelBox"><div id="reel"></div></div>
+  <div id="mascot">🤔</div>
+  <div id="bang"><div class="burst"></div><div class="kw">쾅!!</div><div class="name"></div><div class="tap">화면을 눌러서 닫기</div></div>
+</div>
 <script>
 const CATS = ["한식","중식","일식","양식","분식","기타"];
 const KEY = "lunch-picker-v1";
@@ -201,21 +274,81 @@ $("spin").onclick = () => {
     const p2 = pool.filter(it => !recent.includes(it.name));
     if (p2.length) pool = p2;
   }
-  if (!pool.length) { $("result").textContent = "후보가 없어요"; $("resultCat").textContent=""; return; }
-  $("spin").disabled = true; $("resultCat").textContent = ""; $("goBtn").style.display = "none";
-  let n = 0, total = 18;
-  const tick = () => {
-    const pick = pool[Math.floor(Math.random()*pool.length)];
-    $("result").textContent = pick.name;
-    if (++n < total) setTimeout(tick, 40 + n*12);
-    else {
-      $("resultCat").innerHTML = `${pick.cat}${pick.dist?` · ${pick.dist}m`:""} · 오늘은 여기로! 🎉` +
-        (pick.url ? ` <a href="${esc(pick.url)}" target="_blank" rel="noopener" style="color:var(--main)">지도 보기</a>` : "");
-      lastPick = pick; $("goBtn").style.display = "block"; $("spin").disabled = false;
-    }
-  };
-  tick();
+  if (!pool.length) { setResult("후보가 없어요 😭", ""); return; }
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $("spin").disabled = true; $("goBtn").style.display = "none";
+  playShow(pool, pick);
 };
+
+const FOOD = ["🍜","🍣","🍕","🍔","🍗","🥟","🍛","🌮","🍱","🥘","🍙","🍤","🌶️","🍝","🥩","🍚"];
+const CAT_EMOJI = { 한식:"🍚", 중식:"🥟", 일식:"🍣", 양식:"🍝", 분식:"🍢", 기타:"🍽️" };
+const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function setResult(name, catHtml, celebrate) {
+  const r = $("result");
+  r.classList.remove("idle", "pop"); void r.offsetWidth;
+  r.textContent = name; r.classList.add("pop");
+  $("resultCat").innerHTML = catHtml;
+}
+
+function confetti(n = 36) {
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement("div");
+    el.className = "bit"; el.textContent = rnd(FOOD);
+    document.body.appendChild(el);
+    const ang = Math.random() * Math.PI * 2, dist = 160 + Math.random() * 320;
+    const x = Math.cos(ang) * dist, y = Math.sin(ang) * dist;
+    el.animate([
+      { transform: "translate(-50%,-50%) scale(.2) rotate(0)", opacity: 1 },
+      { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1.3) rotate(${Math.random()*720-360}deg)`, opacity: 1, offset: .6 },
+      { transform: `translate(calc(-50% + ${x*1.1}px), calc(-50% + ${y + 400}px)) scale(1) rotate(${Math.random()*720}deg)`, opacity: 0 }
+    ], { duration: 1600 + Math.random() * 800, easing: "cubic-bezier(.15,.8,.3,1)" }).onfinish = () => el.remove();
+  }
+}
+
+function playShow(pool, pick) {
+  const stage = $("stage"), reel = $("reel"), bang = $("bang");
+  bang.classList.remove("on"); stage.classList.add("on", "spinning");
+  $("drum").textContent = "두구두구두구..."; $("mascot").textContent = "🤔";
+  // 슬롯 릴: 랜덤 이름들 + 마지막에 당첨 식당
+  const N = Math.max(30, pool.length * 3), names = [];
+  for (let i = 0; i < N; i++) names.push(rnd(pool).name);
+  names.push(pick.name, rnd(pool).name);
+  reel.innerHTML = names.map(n => `<div>${esc(n)}</div>`).join("");
+  const H = 110, target = (names.length - 2) * H, dur = reduced ? 1 : 3600;
+  const t0 = performance.now();
+  const lines = [[0, "두구두구두구...", "🤔"], [.45, "과연 오늘은...?!", "😵‍💫"], [.75, "바로바로...!!!", "🤤"]];
+  reel.classList.add("blur");
+  const step = now => {
+    const t = Math.min(1, (now - t0) / dur);
+    // 빠르게 돌다가 끝에서 살짝 지나쳤다 돌아오는(오버슈트) 느낌
+    const e = 1 - Math.pow(1 - t, 4);
+    const over = Math.sin(Math.min(1, t) * Math.PI) * (t > .85 ? 18 : 0);
+    reel.style.transform = `translateY(${-(e * target) + over}px)`;
+    for (const [at, txt, m] of lines) if (t >= at && $("drum").dataset.at != at) { $("drum").dataset.at = at; $("drum").textContent = txt; $("mascot").textContent = m; }
+    if (t > .7) reel.classList.remove("blur");
+    if (t < 1) requestAnimationFrame(step); else boom();
+  };
+  const boom = () => {
+    $("drum").dataset.at = "";
+    stage.classList.remove("spinning");
+    stage.classList.remove("quake", "flash"); void stage.offsetWidth; stage.classList.add("quake", "flash");
+    bang.querySelector(".kw").textContent = rnd(["쾅!!", "펑!!", "당첨!!", "이거다!!"]);
+    bang.querySelector(".name").innerHTML = `${CAT_EMOJI[pick.cat] || "🍽️"} ${esc(pick.name)}`;
+    bang.classList.remove("on"); void bang.offsetWidth; bang.classList.add("on");
+    confetti();
+    const meta = `${pick.cat}${pick.dist ? ` · ${pick.dist}m` : ""}` +
+      (pick.url ? ` · <a href="${esc(pick.url)}" target="_blank" rel="noopener">지도 보기</a>` : "") +
+      `<br><span class="stamp">오늘은 여기다!</span>`;
+    setResult(pick.name, meta);
+    lastPick = pick; $("goBtn").style.display = "block"; $("spin").disabled = false;
+    const close = () => { stage.classList.remove("on", "quake", "flash"); bang.classList.remove("on"); stage.onclick = null; clearTimeout(auto); };
+    const auto = setTimeout(close, 4500);
+    setTimeout(() => { stage.onclick = close; }, 400);
+  };
+  requestAnimationFrame(step);
+}
 // ----- 방문 기록: 팀 공유(서버) 또는 이 기기 저장 -----
 let teamMode = false;
 const histLabel = t => $("histMode").textContent = t;
